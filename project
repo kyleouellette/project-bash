@@ -1,0 +1,65 @@
+#!/bin/bash
+
+#############################################
+# this file is for creating new projects	#
+# project names are bashed on the first arg	#
+# script will exit if none provided			#
+#############################################
+
+# get the filename
+THISFILE=`basename $0`
+
+# make sure you dont clobber shit
+set -o noclobber
+
+# check to make sure that the user has 
+# supplied the project name
+if [ $# -lt 1 ];
+then
+	echo "==============================================="
+	echo "  Commandline usage: $THISFILE <project name>  "
+	echo "==============================================="
+	echo ""
+	exit
+else
+	echo "OK, working on it"
+	mkdir $1
+	cd $1
+	mkdir -p ./_{css/compressed,js/{libs,compressed},assets/images,scss}
+	touch index.html _scss/{main,_colors,_mixins,_grid}.scss _js/main.js _css/{main,compressed/main}.css
+	curl -s http://code.jquery.com/jquery.min.js > ./_js/libs/jquery.min.js
+
+	echo "<!DOCTYPE html>
+<html>
+<head>
+	<title>$1</title>
+	<link href=\"./_css/main.css\" type=\"text/css\" rel=\"stylesheet\" />
+</head>
+<body>
+
+<script src=\"./_js/libs/jquery.min.js\"></script>
+<script src=\"./_js/main.js\"></script>
+</body>
+</html>" >> ./index.html
+	
+	# create build script
+	echo "#!$BASH" > build.sh
+	echo "closure-compiler ./_js/main.js > ./_js/compressed/main.min.js" >> build.sh
+	echo "sass --update _scss:_css --compass -t expanded" >> build.sh
+	echo "sass --update _scss:_css/compressed/ --compass -t compressed" >> build.sh
+	echo "mv _css/compressed/main.css _css/compressed/main.min.css" >> build.sh
+	chmod +x build.sh
+
+fi
+
+# check to make sure the user has git
+# if they do, init the shit out of it
+if [ `which git` ];
+	then
+	echo ".sass*" > .gitignore
+	echo "_scss" >> .gitignore
+
+	git init > /dev/null
+	git add .
+	git commit -qm "initial commit"
+fi
